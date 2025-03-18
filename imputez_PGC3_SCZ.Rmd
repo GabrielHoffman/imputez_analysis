@@ -97,7 +97,7 @@ methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis"
 df_time = list()
 
 # for each method
-res = lapply( methods, function(methods){
+res = lapply( methods, function(method){
   tm = system.time({
     # for each chrom
     res = lapply( 1:22, function(chrom){
@@ -105,7 +105,7 @@ res = lapply( methods, function(methods){
 
       # 1kg reference file
       file = paste0("/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/1kg_chr", chrom, "_norm_eur.bcf")
-      gds = GenomicDataStream(file, field="GT", init=TRUE, samples=sampleIDs, MAF=0.1)
+      gds = GenomicDataStream(file, field="GT", init=TRUE, samples=sampleIDs, MAF=0.01)
 
       # filter
       df_chrom = df[df$CHROM == chrom,]
