@@ -233,7 +233,7 @@ df_res %>%
       xlim(NA, 1)
 ```
 
-```{r concordance, fig.width=9}
+```{r concordance, fig.width=9, eval=FALSE}
 plot_concordance = function(df_res){
 
   # Quantify concordance
