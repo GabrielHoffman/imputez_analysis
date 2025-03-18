@@ -92,29 +92,40 @@ df$z[idx] = df$z[idx]
 window = 1000000
 flankWidth = 250000
 
-file = "/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/1kg_chr22_norm.bcf"
-gds = GenomicDataStream(file, field="GT", init=TRUE, samples=sampleIDs, MAF=0.05)
-
-df_chrom = df[df$CHROM == 22,]
-
-idx = seq(1, nrow(df_chrom), by=10)
-methods = c("decorrelate")#, "Schafer-Strimmer" ) #"Ledoit-Wolf", "OAS", "Touloumis", 
+methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis", 
 
 df_time = list()
 
-res = lapply(methods, function(method){
-  message(method)
+# for each method
+res = lapply( methods, function(methods){
   tm = system.time({
-    res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method=method) %>%
-    mutate(method = method)
-    })
-  df_time[[method]] <<- tm
-  res 
-})
-res = bind_rows(res)
+    # for each chrom
+    res = lapply( 1:22, function(chrom){
+      message(paste(method, chrom))
 
-df_res = res %>%
-      inner_join( df_chrom[idx,], by="ID")
+      # 1kg reference file
+      file = paste0("/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/1kg_chr", chrom, "_norm_eur.bcf")
+      gds = GenomicDataStream(file, field="GT", init=TRUE, samples=sampleIDs, MAF=0.1)
+
+      # filter
+      df_chrom = df[df$CHROM == chrom,]
+
+      # exclude a set of variants
+      idx = seq(1, nrow(df_chrom), by=10)
+
+      # run imputation
+      res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method=method)
+      res$method = method
+
+      # merge with observed z-statistics
+      res %>%
+        inner_join( df_chrom[idx,], by="ID")
+    }
+    })
+  df_time[[method]] <<- tm  
+  bind_rows(res)
+})
+df_res = bind_rows(res)
 ```
 
 
