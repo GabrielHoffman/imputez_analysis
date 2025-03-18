@@ -23,7 +23,7 @@ cd /sc/arion/projects/roussp01a/gabriel/ref_panels/imputez_analysis
 R
 system("git pull")
 
-rmarkdown::render("imputez_PGC3_SCZ.Rmd")
+rmarkdown::render("c4_ref.Rmd")
 
 --->
 
@@ -73,12 +73,12 @@ df_z_obs = read_tsv(file, comment="##") %>%
 # C4 reference map
 file = "/sc/arion/projects/roussp01a/gabriel/ref_panels/c4/MHC_haplotypes_CEU_HapMap3_ref_panel.GRCh37_norm.map"
 df_map = read_delim(file)
-colnames(df_map)[1:2] = c("chrom", "position")
 colnames(df_map)[4:5] = c("REF_A1", "REF_A2")
 
 # df_map[nchar(df_map$REF_A2) != 1,]
 
 df = df_z_obs %>% 
+  select(-CHROM, -POS) %>% 
 	inner_join(df_map, by="ID")
 
 # C4 reference VCF
