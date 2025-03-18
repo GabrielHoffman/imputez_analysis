@@ -18,10 +18,11 @@ params:
 
 
 <!---
-cd /sc/arion/projects/CommonMind/hoffman/NPS-AD/work/nps_ad/analysis/freeze2/revision
+cd /sc/arion/projects/roussp01a/gabriel/ref_panels/imputez_analysis
+
 R
 system("git pull")
-rmarkdown::render("plot_APOE.Rmd")
+rmarkdown::render("imputez_PGC3_SCZ.Rmd")
 
 --->
 
@@ -117,6 +118,18 @@ df_res = res %>%
 
 
 ```{r time}
+
+colMethods = c("decorrelate" = "red",
+              "GIW-EB (k=50)" = "#9f1214",
+              "lambda = 0" = "#0000cd", 
+              "Ledoit-Wolf" = "#FF7F00",    
+              "OAS"= "#cccc29", 
+              "Touloumis" = "#A65628", 
+              "Schafer-Strimmer" = "#f569b3", 
+              "Pseudoinverse" = "green3",
+              "Baseline" = "grey50",
+              "Oracle" = "black")
+
 rmse = function(x) sqrt(mean(x^2))
 
 # Time
