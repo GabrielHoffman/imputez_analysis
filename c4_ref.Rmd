@@ -198,7 +198,7 @@ df %>%
 		theme(aspect.ratio=1/2) +
 		ylab(bquote(-log[10]~P)) +
 		xlab("chr6") +
-		geom_point(data=res_c4, aes(loc, -log10(pvalue)), color="red") +
+		geom_point(data=res_c4, aes(loc/1000000, -log10(pvalue)), color="red") +
 		scale_y_continuous(limits=c(0, ymax), expand=c(0,0)) +
 		scale_x_continuous(expand=c(0,0))
 ```
