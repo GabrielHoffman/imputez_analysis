@@ -1,0 +1,241 @@
+---
+title: "Impute z-statistics from PGC3 SCZ"
+subtitle: 'European samples'
+author: "Developed by [Gabriel Hoffman](http://gabrielhoffman.github.io/)"
+date: "Run on `r Sys.time()`"
+output: 
+  html_document:
+    toc: true
+    smart: true
+    self_contained: false
+params:
+  dataset: NULL
+  variable_type: NULL
+  ctst_key: NULL
+  AnnoLevel: NULL
+  SampleLevel: NULL
+---
+
+
+<!---
+cd /sc/arion/projects/roussp01a/gabriel/ref_panels/imputez_analysis
+
+R
+system("git pull")
+
+rmarkdown::render("imputez_PGC3_SCZ.Rmd")
+
+--->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning=FALSE,
+  message=FALSE,
+  error = FALSE,
+  tidy = FALSE,
+  dev = c("png", "pdf"),
+  package.startup.message = FALSE,
+  cache = TRUE,
+  cache.lazy = FALSE)
+```
+
+
+# C4 reference
+```{sh download, eval=FALSE}
+# ASSEMBLY=GRCh38 
+ASSEMBLY=GRCh37
+
+wget https://personal.broadinstitute.org/giulio/panels/MHC_haplotypes_CEU_HapMap3_ref_panel.${ASSEMBLY}.vcf.gz
+bcftools norm -m -  MHC_haplotypes_CEU_HapMap3_ref_panel.${ASSEMBLY}.vcf.gz | bgzip > MHC_haplotypes_CEU_HapMap3_ref_panel.${ASSEMBLY}_norm.vcf.gz
+tabix -p vcf MHC_haplotypes_CEU_HapMap3_ref_panel.${ASSEMBLY}_norm.vcf.gz
+
+FILE=MHC_haplotypes_CEU_HapMap3_ref_panel.${ASSEMBLY}_norm.vcf.gz
+echo -e "CHROM\tPOS\tID\tA1\tA2" > $(basename $FILE .vcf.gz).map
+bcftools view $FILE | grep -v "#" | cut -f1-5 >> $(basename $FILE .vcf.gz).map
+```
+
+
+# Load data
+```{r load}
+library(imputez)
+library(tidyverse)
+library(GenomicDataStream)
+
+# SCZ GWAS
+# GRCh37
+file = "/sc/arion/projects/roussp01a/gabriel/ref_panels/data/PGC3_SCZ_wave3.european.autosome.public.v3.vcf.tsv.gz"
+df_z_obs = read_tsv(file, comment="##") %>%
+    arrange(CHROM, POS) %>%
+    mutate(z = BETA / SE)  %>%
+    rename(GWAS_A1 = A1, GWAS_A2 = A2)
+
+# C4 reference map
+file = "/sc/arion/projects/roussp01a/gabriel/ref_panels/c4/MHC_haplotypes_CEU_HapMap3_ref_panel.GRCh37_norm.map"
+df_map = read_delim(file)
+colnames(df_map)[1:2] = c("chrom", "position")
+colnames(df_map)[4:5] = c("REF_A1", "REF_A2")
+
+# df_map[nchar(df_map$REF_A2) != 1,]
+
+df = df_z_obs %>% 
+	inner_join(df_map, by="ID")
+
+# C4 reference VCF
+file = "/sc/arion/projects/roussp01a/gabriel/ref_panels/c4/MHC_haplotypes_CEU_HapMap3_ref_panel.GRCh37_norm.vcf.gz"
+gds = GenomicDataStream(file, field="GT", region="6", init=TRUE)
+
+# impute
+res = run_imputez(df, gds, 1000000, 250000)	
+```
+
+# Process results
+```{r results}
+res_c4 = res %>%
+			filter(ID == "C4") %>%
+			mutate(ID = paste(ID, A1, A2, sep="__")) 
+
+baseline = "<BS>"
+i = which(res_c4$A2 == baseline)
+z_base = res_c4$z.stat[i]
+
+res_c4 = res_c4 %>%
+	mutate(z = z_base - z.stat) %>%
+	mutate(pvalue = 2*pnorm(abs(z), lower.tail=FALSE))
+
+# get beta and se
+# https://www.biostars.org/p/319584/
+# Beta = z / sqrt(2p(1− p)(n + z^2)) and
+# SE = 1 / sqrt(2p(1− p)(n + z^2))
+
+# Get variance of each allele
+gds = reinitializeStream(gds)
+dat = getNextChunk( gds )
+dat$info$ID <- with(dat$info, paste(ID, A1, A2, sep="__"))
+colnames(dat$X) <- dat$info$ID
+
+var_x = apply(dat$X, 2, var) 
+
+# var(dat$X[,1])
+# p = sum(dat$X[,1]) / (2*nrow(dat$X))
+# 2*p*(1-p)
+
+i = match(names(var_x), res_c4$ID)
+res_c4$var_x = NA
+res_c4$var_x[i[!is.na(i)]] = var_x[!is.na(i)]
+
+
+n = 58749.13
+res_c4$beta = with(res_c4, z.stat / sqrt(var_x * (n + z.stat^2)))
+res_c4$se = with(res_c4, 1 / sqrt(var_x * (n + z.stat^2)))
+
+
+baseline = "<BS>"
+i = which(res_c4$A2 == baseline)
+beta_base = res_c4$beta[i]
+res_c4$beta = beta_base - res_c4$beta
+
+
+ord = c('BS' = 1,
+'AL-BS-1' = 2,
+'AL-BS-2' = 2,
+'AL-BS-3' = 2,
+'AL-BS-4' = 2,
+'AL-BS-5' = 2,
+'AL-BS-BS' = 2,
+'AL-BS-other' = 2,
+'AL'  = 2,
+'AL-BL-1' = 3,
+'AL-BL-2' = 3,
+'AL-BL-3' = 3,
+'AL-BL-BL' = 3,
+'AL-BL-BS' = 3,
+'AL-BL-other' = 3,
+'AL-AL-1' = 4,
+'AL-AL-2' = 4,
+'AL-AL-3' = 4,
+'AL-AL-AL' = 4,
+'AL-AL-BL' = 4,
+'AL-AL-BS' = 4,
+'AL-AS-BL' = 4,
+'AL-AS-BS-BS' = 4,
+'BL' = 5,
+'BL-BS' = 5)
+
+cols = c("blue", "green2", "orange", "red2", "yellow2")
+cols = cols[ord]
+names(cols) = names(ord)
+
+fig = res_c4 %>%
+	mutate(A2 = gsub("<", "", A2)) %>%
+	mutate(A2 = gsub(">", "", A2)) %>%
+	mutate(A2 = factor(A2, rev(names(ord)))) %>%
+	ggplot(aes(beta, A2, color=A2)) +
+		geom_errorbar(aes(xmin = beta - 1.96*se, xmax = beta + 1.96*se), width=0) + 
+		geom_point() +
+		theme_classic() +
+		theme(aspect.ratio=1, legend.position="none") +
+		geom_vline(xintercept=0, color="grey70", linetype="dashed") +
+		scale_color_manual(values = cols) +
+		xlab(bquote(beta))
+
+ggsave(fig, file="~/www/test.png", height=5, width=5)
+
+
+
+fig = df %>%
+	ggplot(aes(POS, -log10(PVAL))) +
+		geom_point() +
+		theme_classic() +
+		theme(aspect.ratio=1/2) +
+		ylab(bquote(-log[10]~P)) +
+		xlab("chr6") +
+		geom_point(data=res_c4, aes(31980223, -log10(pvalue)), color="red")
+
+
+ggsave(fig, file="~/www/test.png", height=5, width=5)
+
+
+
+
+methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis")
+
+df_time = list()
+
+res = lapply(methods, function(method){
+	message(method)
+	tm = system.time({
+		res <- impute_region(df, gds, "chr6:24894177-33890574", 250000, method=method)
+		})
+	df_time[[method]] <<- tm
+	res 
+})
+
+
+
+fig = do.call(rbind, df_time) %>%
+	as.data.frame %>%
+	rownames_to_column('Method') %>%
+	ggplot(aes(Method, elapsed, fill=Method, label=round(elapsed, digits=1))) +
+		geom_bar(stat="identity") +
+		theme_classic() +
+		theme(aspect.ratio=1, legend.position="none") +
+		scale_fill_manual(values = colMethods) +
+		scale_y_continuous(limits=c(0, 470), expand=c(0,0)) +
+		ylab("Wall time (seconds)") +
+		geom_text(aes(Method, elapsed+1), hjust=0) +
+		coord_flip() 
+ggsave(fig, file="~/www/test.png")
+
+
+
+
+
+
+
+
+
+
+
+
+
