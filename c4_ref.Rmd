@@ -21,6 +21,7 @@ params:
 cd /sc/arion/projects/roussp01a/gabriel/ref_panels/imputez_analysis
 
 R
+
 system("git pull")
 
 rmarkdown::render("c4_ref.Rmd")
@@ -194,7 +195,7 @@ df %>%
 
 
 ```{r compare}
-methods = c("decorrelate", "Schafer-Strimmer")#, "Ledoit-Wolf", "OAS", "Touloumis")
+methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis")
 
 df_time = list()
 
