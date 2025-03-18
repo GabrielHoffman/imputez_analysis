@@ -181,7 +181,8 @@ res_c4 %>%
 		theme(aspect.ratio=1, legend.position="none") +
 		geom_vline(xintercept=0, color="grey70", linetype="dashed") +
 		scale_color_manual(values = cols) +
-		xlab(bquote(beta))
+		xlab(bquote(beta)) +
+		ylab("Allele (compared to baseline A)")
 
 # location of C4 alleles
 loc = df_map %>% 
