@@ -22,6 +22,7 @@ cd /sc/arion/projects/roussp01a/gabriel/ref_panels/imputez_analysis
 
 R
 system("git pull")
+
 rmarkdown::render("imputez_PGC3_SCZ.Rmd")
 
 --->
@@ -62,7 +63,7 @@ sampleIDs = df_pop$Individual.ID[df_pop$Population %in% pops]
 length(sampleIDs)
 
 # read variant positions
-files = dir("/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/", pattern="*.map", full.names=TRUE)
+files = dir("/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/", pattern=".*_norm_eur.map", full.names=TRUE)
 df_map = read_delim(files, progress=FALSE)
 colnames(df_map)[4:5] = c("REF_A1", "REF_A2")
 
@@ -118,7 +119,6 @@ df_res = res %>%
 
 
 ```{r time}
-
 colMethods = c("decorrelate" = "red",
               "GIW-EB (k=50)" = "#9f1214",
               "lambda = 0" = "#0000cd", 
