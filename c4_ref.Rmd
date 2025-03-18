@@ -86,7 +86,9 @@ file = "/sc/arion/projects/roussp01a/gabriel/ref_panels/c4/MHC_haplotypes_CEU_Ha
 gds = GenomicDataStream(file, field="GT", region="6", init=TRUE)
 
 # impute
-res = run_imputez(df, gds, 1000000, 250000)	
+window = 10000000
+flankWidth = 2500000
+res = run_imputez(df, gds, window, flankWidth)	
 ```
 
 # Process results
@@ -166,7 +168,7 @@ cols = c("blue", "green2", "orange", "red2", "yellow2")
 cols = cols[ord]
 names(cols) = names(ord)
 
-fig = res_c4 %>%
+res_c4 %>%
 	mutate(A2 = gsub("<", "", A2)) %>%
 	mutate(A2 = gsub(">", "", A2)) %>%
 	mutate(A2 = factor(A2, rev(names(ord)))) %>%
@@ -179,11 +181,7 @@ fig = res_c4 %>%
 		scale_color_manual(values = cols) +
 		xlab(bquote(beta))
 
-ggsave(fig, file="~/www/test.png", height=5, width=5)
-
-
-
-fig = df %>%
+df %>%
 	ggplot(aes(POS, -log10(PVAL))) +
 		geom_point() +
 		theme_classic() +
@@ -191,13 +189,11 @@ fig = df %>%
 		ylab(bquote(-log[10]~P)) +
 		xlab("chr6") +
 		geom_point(data=res_c4, aes(31980223, -log10(pvalue)), color="red")
-
-
-ggsave(fig, file="~/www/test.png", height=5, width=5)
-
+```
 
 
 
+```{r compare}
 methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis")
 
 df_time = list()
@@ -205,28 +201,40 @@ df_time = list()
 res = lapply(methods, function(method){
 	message(method)
 	tm = system.time({
-		res <- impute_region(df, gds, "chr6:24894177-33890574", 250000, method=method)
+		res <- run_imputez(df, gds, window, flankWidth, method=method)	
 		})
 	df_time[[method]] <<- tm
 	res 
 })
 
+colMethods = c("decorrelate" = "red",
+              "GIW-EB (k=50)" = "#9f1214",
+              "lambda = 0" = "#0000cd", 
+              "Ledoit-Wolf" = "#FF7F00",    
+              "OAS"= "#cccc29", 
+              "Touloumis" = "#A65628", 
+              "Schafer-Strimmer" = "#f569b3", 
+              "Pseudoinverse" = "green3",
+              "Baseline" = "grey50",
+              "Oracle" = "black")
 
+df_time = do.call(rbind, df_time) %>%
+						as.data.frame %>%
+						rownames_to_column('Method')
 
-fig = do.call(rbind, df_time) %>%
-	as.data.frame %>%
-	rownames_to_column('Method') %>%
+ymax = max(df_time$elapsed)*1.10
+
+df_time %>%
 	ggplot(aes(Method, elapsed, fill=Method, label=round(elapsed, digits=1))) +
 		geom_bar(stat="identity") +
 		theme_classic() +
 		theme(aspect.ratio=1, legend.position="none") +
 		scale_fill_manual(values = colMethods) +
-		scale_y_continuous(limits=c(0, 470), expand=c(0,0)) +
+		scale_y_continuous(limits=c(0, ymax), expand=c(0,0)) +
 		ylab("Wall time (seconds)") +
 		geom_text(aes(Method, elapsed+1), hjust=0) +
 		coord_flip() 
-ggsave(fig, file="~/www/test.png")
-
+```
 
 
 
