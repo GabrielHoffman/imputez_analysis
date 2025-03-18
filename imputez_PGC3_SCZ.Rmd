@@ -120,7 +120,7 @@ res = lapply( methods, function(methods){
       # merge with observed z-statistics
       res %>%
         inner_join( df_chrom[idx,], by="ID")
-    }
+    })
     })
   df_time[[method]] <<- tm  
   bind_rows(res)
