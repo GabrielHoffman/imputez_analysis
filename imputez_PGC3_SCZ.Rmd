@@ -20,8 +20,12 @@ params:
 <!---
 cd /sc/arion/projects/roussp01a/gabriel/ref_panels/imputez_analysis
 
-R
+# ml R/4.3.3-intel-mkl
+# R
+# .libPaths("/hpc/users/hoffmg01/.Rlib/R_441_bioc320")
+
 system("git pull")
+
 
 rmarkdown::render("imputez_PGC3_SCZ.Rmd")
 
