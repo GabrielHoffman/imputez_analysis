@@ -189,10 +189,10 @@ loc = df_map %>%
 	pull(POS) %>%
 	unique
 
-ymax = -log10(min(df$PVAL))*1.1
+ymax = -log10(min(res_c4$pvalue))*1.03
 
 df %>%
-	ggplot(aes(POS, -log10(PVAL))) +
+	ggplot(aes(POS/1000000, -log10(PVAL))) +
 		geom_point() +
 		theme_classic() +
 		theme(aspect.ratio=1/2) +
