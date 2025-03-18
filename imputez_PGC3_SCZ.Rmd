@@ -96,7 +96,7 @@ df$z[idx] = df$z[idx]
 window = 1000000
 flankWidth = 250000
 
-methods = c("decorrelate")#, "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis") 
+methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis") 
 
 df_time = list()
 
@@ -250,57 +250,6 @@ df_res %>%
       xlim(NA, 1)
 ```
 
-```{r concordance, fig.width=9, eval=FALSE}
-plot_concordance = function(df_res){
-
-  # Quantify concordance
-  rsq = df_res  %>%
-    summarize(Rsq = cor(z, z.stat)^2) %>%
-    pull %>%
-    format(digits=4)
-
-  rmse = df_res  %>%
-    summarize(Rsq = sqrt(mean((z - z.stat)^2))) %>%
-    pull %>%
-    format(digits=4)
-
-  lim = range(c(df_res$z, df_res$z.stat))
-
-  df_res %>%
-    arrange(-r2.pred) %>%
-    ggplot(aes(z, z.stat, color=r2.pred)) +
-      geom_point() +
-      theme_classic() +
-      xlab("Observed z-statistic") +
-      ylab("Imputed z-statistic") +
-      geom_abline(slope=1, intercept=0) +
-      geom_hline(yintercept=0, color="grey70", linetype="dashed") +
-      geom_vline(xintercept=0, color="grey70", linetype="dashed") +
-      scale_color_gradient(low="grey30", high="red", limits=c(.5,1)) +
-      coord_fixed(ratio = 1) +
-      ylim(lim) + xlim(lim) +
-      annotate("text", x=lim[1]*.6, y=lim[2]*.9, label=bquote(R^2==.(rsq))) +
-      annotate("text", x=lim[1]*.6, y=lim[2]*.7, label=bquote(rMSE==.(rmse)))
-}
-
-
-# joint imputed and observed t-statistics
-df_res1 = res_eclairs %>%
-          left_join(df, by="ID") %>%
-          # mutate(z.stat = z.stat / sqrt(sigSq)) %>%
-          filter(maf > 0.05)
-fig1 = plot_concordance(df_res1)
-
-
-# joint imputed and observed t-statistics
-df_res2 = res_fixed %>%
-          left_join(df, by="ID") %>%
-          # mutate(z.stat = z.stat / sqrt(sigSq)) %>%
-          filter(maf > 0.05)
-fig2 = plot_concordance(df_res2)
-
-cowplot::plot_grid(fig1, fig2)
-```
 
 
 
