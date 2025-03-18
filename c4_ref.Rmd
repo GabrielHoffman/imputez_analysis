@@ -189,7 +189,7 @@ loc = df_map %>%
 	pull(POS) %>%
 	unique
 
-ymax = -log10(min(df$PVAL))*1.03
+ymax = -log10(min(df$PVAL))*1.1
 
 df %>%
 	ggplot(aes(POS, -log10(PVAL))) +
