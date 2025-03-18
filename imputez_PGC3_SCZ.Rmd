@@ -65,8 +65,8 @@ length(sampleIDs)
 # read variant positions
 files = dir("/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/", pattern=".*_norm_eur.map", full.names=TRUE)
 df_map = read_delim(files, progress=FALSE)
-colnames(df_map)[4:5] = c("REF_A1", "REF_A2")
-
+colnames(df_map)[4:5] = c("REF_A1", "REF_qA2")
+ 
 # GRCh37
 file = "/sc/arion/projects/roussp01a/gabriel/ref_panels/data/PGC3_SCZ_wave3.european.autosome.public.v3.vcf.tsv.gz"
 df_z_obs = read_tsv(file, comment="##") %>%
