@@ -194,7 +194,7 @@ df %>%
 
 
 ```{r compare}
-methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis")
+methods = c("decorrelate", "Schafer-Strimmer")#, "Ledoit-Wolf", "OAS", "Touloumis")
 
 df_time = list()
 
