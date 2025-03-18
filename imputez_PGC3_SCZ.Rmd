@@ -92,7 +92,7 @@ df$z[idx] = df$z[idx]
 window = 1000000
 flankWidth = 250000
 
-methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis") 
+methods = c("decorrelate")#, "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis") 
 
 df_time = list()
 
@@ -100,7 +100,7 @@ df_time = list()
 res = lapply( methods, function(method){
   tm = system.time({
     # for each chrom
-    res = lapply( 1:22, function(chrom){
+    res = lapply( 20:22, function(chrom){
       message(paste(method, chrom))
 
       # 1kg reference file
