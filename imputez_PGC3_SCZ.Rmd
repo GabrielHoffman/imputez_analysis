@@ -1,0 +1,276 @@
+---
+title: "Impute z-statistics from PGC3 SCZ"
+subtitle: 'European samples'
+author: "Developed by [Gabriel Hoffman](http://gabrielhoffman.github.io/)"
+date: "Run on `r Sys.time()`"
+output: 
+  html_document:
+    toc: true
+    smart: true
+    self_contained: false
+params:
+  dataset: NULL
+  variable_type: NULL
+  ctst_key: NULL
+  AnnoLevel: NULL
+  SampleLevel: NULL
+---
+
+
+<!---
+cd /sc/arion/projects/CommonMind/hoffman/NPS-AD/work/nps_ad/analysis/freeze2/revision
+R
+system("git pull")
+rmarkdown::render("plot_APOE.Rmd")
+
+--->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning=FALSE,
+  message=FALSE,
+  error = FALSE,
+  tidy = FALSE,
+  dev = c("png", "pdf"),
+  package.startup.message = FALSE,
+  cache = FALSE,
+  cache.lazy = FALSE)
+```
+
+# Load data
+```{r load}
+library(imputez)
+library(tidyverse)
+library(GenomicDataStream)
+
+# Load names of samples to be included from reference panel
+# FAM file
+file = "/sc/arion/projects/data-ark/Public_Unrestricted/1000G/phase3/PLINK/chr1.fam"
+df_fam = read.table(file)
+colnames(df_fam) = c("FID", "IID", "PID", "MID", "Sex", "Pop")
+
+# Population assignments
+file = "/sc/arion/projects/data-ark/Public_Unrestricted/1000G/phase3/release_2013502/integrated_call_samples.20130502.ALL.ped"
+df_pop = read.table(file, header=TRUE, sep="\t")
+df_pop = df_pop[df_pop$Relationship %in% c("father", "unrel","mother"),]
+df_pop = df_pop[df_pop$Individual.ID %in% df_fam$IID,]
+
+pops = c('GBR','IBS', 'TSI','CEU')#, "FIN")
+sampleIDs = df_pop$Individual.ID[df_pop$Population %in% pops]
+length(sampleIDs)
+
+# read variant positions
+files = dir("/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/", pattern="*.map", full.names=TRUE)
+df_map = read_delim(files, progress=FALSE)
+colnames(df_map)[4:5] = c("REF_A1", "REF_A2")
+
+# GRCh37
+file = "/sc/arion/projects/roussp01a/gabriel/ref_panels/data/PGC3_SCZ_wave3.european.autosome.public.v3.vcf.tsv.gz"
+df_z_obs = read_tsv(file, comment="##") %>%
+    arrange(CHROM, POS) %>%
+    mutate(z = BETA / SE)  %>%
+    rename(GWAS_A1 = A1, GWAS_A2 = A2)
+
+# join
+df = df_z_obs %>%
+  select(-CHROM, -POS) %>% 
+  inner_join(df_map, by="ID")
+
+# if alleles are flipped, take negative z-stat
+idx = with(df, GWAS_A1 == REF_A2 & GWAS_A2 == REF_A1)
+tmp = df$GWAS_A1[idx]
+df$GWAS_A1[idx] = df$GWAS_A2[idx]
+df$GWAS_A2[idx] = tmp
+df$z[idx] = df$z[idx]
+```
+
+
+```{r impute}
+window = 1000000
+flankWidth = 250000
+
+file = "/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/1kg_chr22_norm.bcf"
+gds = GenomicDataStream(file, field="GT", init=TRUE, samples=sampleIDs, MAF=0.05)
+
+df_chrom = df[df$CHROM == 22,]
+
+idx = seq(1, nrow(df_chrom), by=10)
+methods = c("decorrelate")#, "Schafer-Strimmer" ) #"Ledoit-Wolf", "OAS", "Touloumis", 
+
+df_time = list()
+
+res = lapply(methods, function(method){
+  message(method)
+  tm = system.time({
+    res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method=method) %>%
+    mutate(method = method)
+    })
+  df_time[[method]] <<- tm
+  res 
+})
+res = bind_rows(res)
+
+df_res = res %>%
+      inner_join( df_chrom[idx,], by="ID")
+```
+
+
+```{r time}
+rmse = function(x) sqrt(mean(x^2))
+
+# Time
+do.call(rbind, df_time) %>%
+  as.data.frame %>%
+  rownames_to_column('Method') %>%
+  ggplot(aes(Method, elapsed, fill=Method)) +
+    geom_bar(stat="identity") +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    scale_fill_manual(values = colMethods) +
+    scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
+    ylab("Wall time (seconds)") +
+    coord_flip()
+
+# rMSE
+df_res %>%
+  filter(maf > 0.05) %>%
+  group_by(method) %>%
+  summarize(rMSE = rmse(z.stat - z), 
+      rMSE.mod = rmse(z.stat/se - z)) %>%
+  ggplot(aes(method, rMSE, fill=method)) +
+    geom_bar(stat="identity") +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    scale_fill_manual(values = colMethods) +
+    scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
+    ylab("Root mean squared error")
+
+# rMSE - stratified
+df_res %>%
+  filter(maf > 0.05) %>%
+  group_by(method, nVariants) %>%
+  summarize(rMSE = rmse(z.stat - z), 
+      rMSE.mod = rmse(z.stat/se - z)) %>%
+  ggplot(aes(nVariants, rMSE, color=method)) +
+    geom_point() +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    scale_color_manual(values = colMethods) +
+    scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
+    ylab("Root mean squared error")
+
+# rMSE - stratified by r2.pred
+df_res %>%
+  # filter(maf > 0.05) %>%
+  ggplot(aes(r2.pred, (z.stat - z)^2, color=method)) +
+    geom_point() +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    scale_color_manual(values = colMethods) +
+    scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
+    ylab("Squared error")
+
+# imputez vs observed z-statistics
+lim = range(c(df_res$z, df_res$z.stat))
+df_res %>%
+  filter(maf > 0.05) %>%
+  arrange(-r2.pred) %>%
+  ggplot(aes(z, z.stat, color=r2.pred)) +
+    geom_point() +
+    theme_classic() +
+    xlab("Observed z-statistic") +
+    ylab("Imputed z-statistic") +
+    geom_abline(slope=1, intercept=0) +
+    scale_color_gradient(low="grey30", high="red", limits=c(0,1)) +
+    coord_fixed(ratio = 1) +
+    ylim(lim) + 
+    xlim(lim) +
+    facet_wrap( ~ method)
+
+
+df_res %>%
+  filter(maf > 0.05) %>%
+  arrange(-r2.pred) %>%
+  ggplot(aes(z.stat, se, color=r2.pred)) +
+    geom_point() +
+    theme_classic() +
+    theme(aspect.ratio=1) +
+    scale_color_gradient(low="grey30", high="red", limits=c(.8,1)) +
+    facet_wrap( ~ method)
+
+# histogram of lambda values
+df_res %>%
+    ggplot(aes(lambda)) +
+      geom_histogram() +
+      theme_classic() +
+      theme(aspect.ratio=1) +
+      xlab(bquote(lambda)) +
+      facet_wrap( ~ method) +
+      xlim(0, 1)
+
+# histogram of r2.pred values
+df_res %>%
+    ggplot(aes(r2.pred)) +
+      geom_histogram() +
+      theme_classic() +
+      theme(aspect.ratio=1) +
+      xlab(bquote(r2.pred)) +
+      facet_wrap( ~ method) +
+      xlim(NA, 1)
+```
+
+```{r concordance, fig.width=9}
+plot_concordance = function(df_res){
+
+  # Quantify concordance
+  rsq = df_res  %>%
+    summarize(Rsq = cor(z, z.stat)^2) %>%
+    pull %>%
+    format(digits=4)
+
+  rmse = df_res  %>%
+    summarize(Rsq = sqrt(mean((z - z.stat)^2))) %>%
+    pull %>%
+    format(digits=4)
+
+  lim = range(c(df_res$z, df_res$z.stat))
+
+  df_res %>%
+    arrange(-r2.pred) %>%
+    ggplot(aes(z, z.stat, color=r2.pred)) +
+      geom_point() +
+      theme_classic() +
+      xlab("Observed z-statistic") +
+      ylab("Imputed z-statistic") +
+      geom_abline(slope=1, intercept=0) +
+      scale_color_gradient(low="grey30", high="red", limits=c(.5,1)) +
+      coord_fixed(ratio = 1) +
+      ylim(lim) + xlim(lim) +
+      annotate("text", x=lim[1]*.6, y=lim[2]*.9, label=bquote(R^2==.(rsq))) +
+      annotate("text", x=lim[1]*.6, y=lim[2]*.7, label=bquote(rMSE==.(rmse)))
+}
+
+
+# joint imputed and observed t-statistics
+df_res1 = res_eclairs %>%
+          left_join(df, by="ID") %>%
+          # mutate(z.stat = z.stat / sqrt(sigSq)) %>%
+          filter(maf > 0.05)
+fig1 = plot_concordance(df_res1)
+
+
+# joint imputed and observed t-statistics
+df_res2 = res_fixed %>%
+          left_join(df, by="ID") %>%
+          # mutate(z.stat = z.stat / sqrt(sigSq)) %>%
+          filter(maf > 0.05)
+fig2 = plot_concordance(df_res2)
+
+cowplot::plot_grid(fig1, fig2)
+```
+
+
+
+
+
