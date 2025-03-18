@@ -112,6 +112,7 @@ res_c4 = res_c4 %>%
 # SE = 1 / sqrt(2p(1− p)(n + z^2))
 
 # Get variance of each allele
+gds = GenomicDataStream(file, field="GT", region="6", init=TRUE)
 gds = reinitializeStream(gds)
 dat = getNextChunk( gds )
 dat$info$ID <- with(dat$info, paste(ID, A1, A2, sep="__"))
@@ -182,6 +183,12 @@ res_c4 %>%
 		scale_color_manual(values = cols) +
 		xlab(bquote(beta))
 
+# location of C4 alleles
+loc = df_map %>% 
+	filter(ID == "C4") %>% 
+	pull(POS) %>%
+	unique
+
 df %>%
 	ggplot(aes(POS, -log10(PVAL))) +
 		geom_point() +
@@ -189,7 +196,8 @@ df %>%
 		theme(aspect.ratio=1/2) +
 		ylab(bquote(-log[10]~P)) +
 		xlab("chr6") +
-		geom_point(data=res_c4, aes(31980223, -log10(pvalue)), color="red")
+		geom_point(data=res_c4, aes(loc, -log10(pvalue)), color="red") +
+		scale_y_continuous(limits=c(0, NA))
 ```
 
 
