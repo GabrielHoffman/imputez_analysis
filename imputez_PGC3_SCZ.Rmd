@@ -173,7 +173,7 @@ do.call(rbind, df_time) %>%
 do.call(rbind, df_time) %>%
   as.data.frame %>%
   rownames_to_column('Method') %>%
-  ggplot(aes(Method, user, fill=Method)) +
+  ggplot(aes(Method, user.self, fill=Method)) +
     geom_bar(stat="identity") +
     theme_classic() +
     theme(aspect.ratio=1, legend.position="none") +
