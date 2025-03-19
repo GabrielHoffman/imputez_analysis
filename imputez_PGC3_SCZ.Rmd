@@ -99,12 +99,12 @@ df$z[idx] = df$z[idx]
 ```{r impute}
 library(RhpcBLASctl)
 # Use 12 threads
-omp_set_num_threads(12)
+omp_set_num_threads(4)
 
 window = 1000000
 flankWidth = 250000
 
-methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis") 
+methods = c("decorrelate", "Schafer-Strimmer")#, "Ledoit-Wolf", "OAS", "Touloumis") 
 
 df_time = list()
 
@@ -112,7 +112,7 @@ df_time = list()
 res = lapply( methods, function(method){
   tm = system.time({
     # for each chrom
-    res = lapply( 22, function(chrom){
+    res = lapply( 1:22, function(chrom){
       message(paste(method, chrom))
 
       # 1kg reference file

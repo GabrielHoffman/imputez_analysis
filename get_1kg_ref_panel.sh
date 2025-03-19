@@ -21,6 +21,7 @@ do
 	bcftools view -s HG00096 1kg_chr${CHR}_norm.bcf | grep -v "#" | cut -f1-5 >> 1kg_chr${CHR}_norm.map
 done
 
+# Get 1KG files from https://hgdownload.cse.ucsc.edu/gbdb/hg19/1000Genomes/phase3/
 # Filter for MAF in European samples
 ml bcftools tabix parallel
 OUT=/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg
