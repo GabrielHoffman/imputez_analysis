@@ -20,7 +20,7 @@ params:
 <!---
 cd /sc/arion/projects/roussp01a/gabriel/ref_panels/imputez_analysis
 
-# ml R/4.3.3-intel-mkl
+# ml R/4.4.3-intel-mkl
 # R
 # .libPaths("/hpc/users/hoffmg01/.Rlib/R_441_bioc320")
 
@@ -93,10 +93,14 @@ df$z[idx] = df$z[idx]
 
 
 ```{r impute}
+library(RhpcBLASctl)
+# Use 12 threads
+omp_set_num_threads(12)
+
 window = 1000000
 flankWidth = 250000
 
-methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis") 
+methods = c("decorrelate")#, "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis") 
 
 df_time = list()
 
@@ -104,7 +108,7 @@ df_time = list()
 res = lapply( methods, function(method){
   tm = system.time({
     # for each chrom
-    res = lapply( 20:22, function(chrom){
+    res = lapply( 22, function(chrom){
       message(paste(method, chrom))
 
       # 1kg reference file
@@ -134,6 +138,8 @@ df_res = bind_rows(res)
 
 
 ```{r time}
+library(scattermore)
+
 colMethods = c("decorrelate" = "red",
               "GIW-EB (k=50)" = "#9f1214",
               "lambda = 0" = "#0000cd", 
@@ -205,7 +211,7 @@ df_res %>%
   filter(maf > 0.05) %>%
   arrange(-r2.pred) %>%
   ggplot(aes(z, z.stat, color=r2.pred)) +
-    geom_point() +
+    geom_scattermore(pointsize=10) +
     theme_classic() +
     xlab("Observed z-statistic") +
     ylab("Imputed z-statistic") +

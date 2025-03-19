@@ -37,5 +37,5 @@ cd /sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/
 for CHR in $(seq 1 22)
 do
 	echo -e "CHROM\tPOS\tID\tA1\tA2" > 1kg_chr${CHR}_norm_eur.map
-	bcftools view -s HG00096 1kg_chr${CHR}_norm_eur.bcf | grep -v "#" | cut -f1-5 >> 1kg_chr${CHR}_norm_eur.map
+	bcftools view -s HG00096 1kg_chr${CHR}_norm_eur.bcf | grep -v "#" | cut -f1-5 >> 1kg_chr${CHR}_norm_eur.map &
 done
