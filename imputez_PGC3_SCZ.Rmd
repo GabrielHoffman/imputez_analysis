@@ -104,7 +104,7 @@ omp_set_num_threads(12)
 window = 1000000
 flankWidth = 250000
 
-methods = c("decorrelate", "Schafer-Strimmer")#, "Ledoit-Wolf", "OAS", "Touloumis") 
+methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis") 
 
 df_time = list()
 
