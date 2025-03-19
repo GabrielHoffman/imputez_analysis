@@ -18,6 +18,9 @@ params:
 
 
 <!---
+
+
+
 cd /sc/arion/projects/roussp01a/gabriel/ref_panels/imputez_analysis
 
 # ml R/4.4.3-intel-mkl
@@ -28,6 +31,7 @@ system("git pull")
 
 
 rmarkdown::render("imputez_PGC3_SCZ.Rmd")
+
 
 --->
 
@@ -166,6 +170,18 @@ do.call(rbind, df_time) %>%
     ylab("Wall time (seconds)") +
     coord_flip()
 
+do.call(rbind, df_time) %>%
+  as.data.frame %>%
+  rownames_to_column('Method') %>%
+  ggplot(aes(Method, user, fill=Method)) +
+    geom_bar(stat="identity") +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    scale_fill_manual(values = colMethods) +
+    scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
+    ylab("CPU time (seconds)") +
+    coord_flip()
+
 # rMSE
 df_res %>%
   filter(maf > 0.05) %>%
@@ -211,7 +227,7 @@ df_res %>%
   filter(maf > 0.05) %>%
   arrange(-r2.pred) %>%
   ggplot(aes(z, z.stat, color=r2.pred)) +
-    geom_scattermore(pointsize=10) +
+    geom_scattermore(pointsize=7) +
     theme_classic() +
     xlab("Observed z-statistic") +
     ylab("Imputed z-statistic") +
