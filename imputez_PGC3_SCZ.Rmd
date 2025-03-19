@@ -137,7 +137,7 @@ df_res = bind_rows(res)
 ```
 
 
-```{r time}
+```{r time, cache=FALSE}
 library(scattermore)
 
 colMethods = c("decorrelate" = "red",
@@ -223,7 +223,6 @@ df_res %>%
     ylim(lim) + 
     xlim(lim) +
     facet_wrap( ~ method)
-
 
 df_res %>%
   filter(maf > 0.05) %>%
