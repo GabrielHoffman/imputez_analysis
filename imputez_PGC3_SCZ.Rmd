@@ -132,13 +132,22 @@ res = lapply( methods, function(method){
       # merge with observed z-statistics
       res %>%
         inner_join( df_chrom[idx,], by="ID")
-    })
+    }) 
     })
   df_time[[method]] <<- tm  
   bind_rows(res)
 })
 df_res = bind_rows(res)
 ```
+
+
+# df[df$ID == 'rs139745380',] %>% data.frame
+
+
+# region = "10:38523571-39523571"
+# res = impute_region(df_chrom[-idx,], gds, region, flankWidth, method="decor")
+# res %>% filter(ID == "rs139745380" )
+
 
 
 ```{r time, cache=FALSE}
@@ -182,8 +191,13 @@ do.call(rbind, df_time) %>%
     ylab("CPU time (seconds)") +
     coord_flip()
 
+# Variant IDs with multiple alleles
+tab = table(df_res$ID)
+exclID = names(tab[tab > 2])
+
 # rMSE
 df_res %>%
+  filter(!ID %in% exclID) %>%
   filter(maf > 0.05) %>%
   group_by(method) %>%
   summarize(rMSE = rmse(z.stat - z), 
@@ -198,6 +212,7 @@ df_res %>%
 
 # rMSE - stratified
 df_res %>%
+  filter(!ID %in% exclID) %>%
   filter(maf > 0.05) %>%
   group_by(method, nVariants) %>%
   summarize(rMSE = rmse(z.stat - z), 
@@ -209,6 +224,84 @@ df_res %>%
     scale_color_manual(values = colMethods) +
     scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
     ylab("Root mean squared error")
+
+
+
+# maf vs r2.pred
+fig = df_res %>%
+  filter(!ID %in% exclID) %>%
+  ggplot(aes(maf, r2.pred, color=method)) +
+    geom_scattermore(pointsize=3) +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    scale_color_manual(values = colMethods) +
+    facet_wrap( ~ method)
+
+# maf vs error
+fig = df_res %>%
+  filter(!ID %in% exclID) %>%
+  filter(maf > 0.01) %>%
+  ggplot(aes(maf, abs(z.stat - z), color=method)) +
+    geom_scattermore(pointsize=3) + 
+    # geom_smooth() +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    # facet_wrap( ~ method) +
+    scale_color_manual(values = colMethods) 
+
+# maf vs error
+breaks = c(0.01, 0.05, .1, .2, .3, .4, .5)
+fig = df_res %>%
+  filter(!ID %in% exclID) %>%
+  filter(maf > 0.01) %>%
+  mutate(cat = cut(maf, breaks)) %>%
+  ggplot(aes(cat, abs(z.stat - z), color=method)) +
+    geom_boxplot() +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    # facet_wrap( ~ method) +
+    scale_color_manual(values = colMethods) +
+    coord_cartesian(ylim=c(0, 1))
+
+# maf vs delta
+a = df_res %>%
+  filter(!ID %in% exclID) %>%
+  filter(method == "decorrelate") %>%
+  mutate(delta = abs(z.stat - z))
+
+b =  df_res %>%
+  filter(!ID %in% exclID) %>%
+  filter(method == "Schafer-Strimmer") %>%
+  mutate(delta = abs(z.stat - z))
+
+dfc = inner_join(a,b, by=c("ID", "A1", "A2"))
+
+
+fig = dfc %>%  
+  ggplot(aes(maf.x, delta.x - delta.y)) +
+    geom_scattermore(pointsize=3) + 
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") 
+
+# rs139745380
+dfc %>%
+  arrange(delta.x - delta.y) %>%
+  tail(1) %>%
+  data.frame
+
+
+fig = dfc %>%  
+  arrange(-maf.x) %>%
+  ggplot(aes(delta.x,  delta.y, color=maf.x)) +
+    geom_scattermore(pointsize=3) + 
+    scale_color_gradient(low="blue", high="red", limits=c(0,.5)) +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="right") 
+
+ggsave(fig, file="~/www/test.png")
+
+
+
 
 # rMSE - stratified by r2.pred
 df_res %>%
@@ -247,7 +340,7 @@ df_res %>%
     geom_point() +
     theme_classic() +
     theme(aspect.ratio=1) +
-    scale_color_gradient(low="grey30", high="red", limits=c(.8,1)) +
+    scale_color_gradient(low="grey30", high="red", limits=c(.7,1)) +
     facet_wrap( ~ method)
 
 # histogram of lambda values
