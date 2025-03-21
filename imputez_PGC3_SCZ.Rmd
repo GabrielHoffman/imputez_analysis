@@ -93,6 +93,26 @@ tmp = df$GWAS_A1[idx]
 df$GWAS_A1[idx] = df$GWAS_A2[idx]
 df$GWAS_A2[idx] = tmp
 df$z[idx] = df$z[idx]
+
+# Keep variants where GWAS and REF panel alleles match
+df = df %>%
+  filter(GWAS_A1 == REF_A1)%>%
+  filter(GWAS_A2 == REF_A2)
+
+# df[df$ID %in% exclID[1],] %>% data.frame
+
+# Remove 
+#-------
+# Variant IDs with multiple alleles
+exclID = with(df, unique(ID[duplicated(ID)]))
+
+# Exclude MHC: "6:24894177-33890574"
+exclID_MHC = df %>%
+  filter(CHROM == 6, POS >= 24894177 & POS <= 33890574 ) %>%
+  select(ID)
+
+df = df %>%
+    filter(!ID %in% c(exclID, exclID_MHC))
 ```
 
 
@@ -191,14 +211,12 @@ do.call(rbind, df_time) %>%
     ylab("CPU time (seconds)") +
     coord_flip()
 
-# Variant IDs with multiple alleles
-tab = table(df_res$ID)
-exclID = names(tab[tab > 2])
+MAF = 0.05
 
 # rMSE
 df_res %>%
   filter(!ID %in% exclID) %>%
-  filter(maf > 0.05) %>%
+  filter(maf > MAF) %>%
   group_by(method) %>%
   summarize(rMSE = rmse(z.stat - z), 
       rMSE.mod = rmse(z.stat/se - z)) %>%
@@ -213,7 +231,7 @@ df_res %>%
 # rMSE - stratified
 df_res %>%
   filter(!ID %in% exclID) %>%
-  filter(maf > 0.05) %>%
+  filter(maf > MAF) %>%
   group_by(method, nVariants) %>%
   summarize(rMSE = rmse(z.stat - z), 
       rMSE.mod = rmse(z.stat/se - z)) %>%
@@ -229,6 +247,7 @@ df_res %>%
 
 # maf vs r2.pred
 fig = df_res %>%
+  filter(maf > MAF) %>%
   filter(!ID %in% exclID) %>%
   ggplot(aes(maf, r2.pred, color=method)) +
     geom_scattermore(pointsize=3) +
@@ -240,7 +259,7 @@ fig = df_res %>%
 # maf vs error
 fig = df_res %>%
   filter(!ID %in% exclID) %>%
-  filter(maf > 0.01) %>%
+  filter(maf > MAF) %>%
   ggplot(aes(maf, abs(z.stat - z), color=method)) +
     geom_scattermore(pointsize=3) + 
     # geom_smooth() +
@@ -249,11 +268,20 @@ fig = df_res %>%
     # facet_wrap( ~ method) +
     scale_color_manual(values = colMethods) 
 
+fig = df_res %>%
+  filter(maf > MAF) %>%
+  filter(!ID %in% exclID) %>%
+  ggplot(aes(maf, abs(z.stat - z), color=method)) +
+    geom_smooth() +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    scale_color_manual(values = colMethods) 
+
 # maf vs error
 breaks = c(0.01, 0.05, .1, .2, .3, .4, .5)
 fig = df_res %>%
   filter(!ID %in% exclID) %>%
-  filter(maf > 0.01) %>%
+  filter(maf > MAF) %>%
   mutate(cat = cut(maf, breaks)) %>%
   ggplot(aes(cat, abs(z.stat - z), color=method)) +
     geom_boxplot() +
@@ -278,10 +306,22 @@ dfc = inner_join(a,b, by=c("ID", "A1", "A2"))
 
 
 fig = dfc %>%  
+  filter(maf.x > MAF) %>%
   ggplot(aes(maf.x, delta.x - delta.y)) +
     geom_scattermore(pointsize=3) + 
+    geom_hline(yintercept=0, color="grey70",linetype="dashed") +
+    geom_smooth() +
     theme_classic() +
     theme(aspect.ratio=1, legend.position="none") 
+
+ggsave(fig, file="~/www/test.png")
+
+
+
+dfc %>%
+  arrange(delta.x) %>%
+  tail(1) %>%
+  data.frame
 
 # rs139745380
 dfc %>%
@@ -292,6 +332,7 @@ dfc %>%
 
 fig = dfc %>%  
   arrange(-maf.x) %>%
+  filter(maf.x > 0.01) %>%
   ggplot(aes(delta.x,  delta.y, color=maf.x)) +
     geom_scattermore(pointsize=3) + 
     scale_color_gradient(low="blue", high="red", limits=c(0,.5)) +
