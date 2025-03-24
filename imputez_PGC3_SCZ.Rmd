@@ -48,12 +48,19 @@ knitr::opts_chunk$set(
   cache.lazy = FALSE)
 ```
 
-# Load data
-```{r load}
+# Load packages
+```{r pkg, cache=FALSE}
 library(imputez)
 library(tidyverse)
 library(GenomicDataStream)
+library(ggplot2)
+library(scattermore)
+library(RhpcBLASctl)
+omp_set_num_threads(4)
+```
 
+# Load data
+```{r load}
 # Load names of samples to be included from reference panel
 # FAM file
 file = "/sc/arion/projects/data-ark/Public_Unrestricted/1000G/phase3/PLINK/chr1.fam"
@@ -99,8 +106,6 @@ df = df %>%
   filter(GWAS_A1 == REF_A1)%>%
   filter(GWAS_A2 == REF_A2)
 
-# df[df$ID %in% exclID[1],] %>% data.frame
-
 # Remove 
 #-------
 # Variant IDs with multiple alleles
@@ -117,10 +122,6 @@ df = df %>%
 
 
 ```{r impute}
-library(RhpcBLASctl)
-# Use 12 threads
-omp_set_num_threads(4)
-
 window = 1000000
 flankWidth = 250000
 
@@ -132,7 +133,7 @@ df_time = list()
 res = lapply( methods, function(method){
   tm = system.time({
     # for each chrom
-    res = lapply( 1:22, function(chrom){
+    res = lapply( 22, function(chrom){
       message(paste(method, chrom))
 
       # 1kg reference file
@@ -160,11 +161,52 @@ res = lapply( methods, function(method){
 df_res = bind_rows(res)
 ```
 
+```{r test, eval=FALSE, echo=FALSE}
+library(parallel)
+
+flank = 2000000
+start = 1000000
+end = start + 1000000
+region = paste0(chrom, ":", start, '-', end)
+res = impute_region(df_chrom[-idx,], gds, region, flank)
+
+
+library(RhpcBLASctl)
+omp_set_num_threads(2)
+
+chrom = 10
+file = paste0("/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/1kg_chr", chrom, "_norm_eur.bcf")
+df_chrom = df[df$CHROM == chrom,]
+idx = seq(1, nrow(df_chrom), by=10)
+
+
+window = 1000000
+v = c(10000, 50000, 100000, 500000, 1000000, 2000000, 3000000)
+res = mclapply(v, function(flankWidth){
+  gds = GenomicDataStream(file, field="GT", init=TRUE, samples=sampleIDs, MAF=0.01)
+
+  s = seq(1, 100000)
+  res = run_imputez(df_chrom[-idx,][s,], gds, window, flankWidth)
+  res$flankWidth = flankWidth
+  res
+  }, mc.cores=12)
+names(res) = v
+
+df_res = res %>%
+        bind_rows %>%
+        inner_join( df_chrom[idx,], by="ID")
+
+df_res %>%
+  filter(maf > MAF) %>%
+  group_by(flankWidth) %>%
+  summarize(rMSE = rmse(z.stat - z))
+
+
+
+```
 
 
 ```{r time, cache=FALSE}
-library(scattermore)
-
 colMethods = c("decorrelate" = "red",
               "GIW-EB (k=50)" = "#9f1214",
               "lambda = 0" = "#0000cd", 
@@ -207,7 +249,6 @@ MAF = 0.05
 
 # rMSE
 df_res %>%
-  filter(!ID %in% exclID) %>%
   filter(maf > MAF) %>%
   group_by(method) %>%
   summarize(rMSE = rmse(z.stat - z), 
@@ -222,7 +263,6 @@ df_res %>%
 
 # rMSE - stratified
 df_res %>%
-  filter(!ID %in% exclID) %>%
   filter(maf > MAF) %>%
   group_by(method, nVariants) %>%
   summarize(rMSE = rmse(z.stat - z), 
@@ -240,7 +280,6 @@ df_res %>%
 # maf vs r2.pred
 df_res %>%
   filter(maf > MAF) %>%
-  filter(!ID %in% exclID) %>%
   ggplot(aes(maf, r2.pred, color=method)) +
     geom_scattermore(pointsize=3) +
     theme_classic() +
@@ -250,7 +289,6 @@ df_res %>%
 
 # maf vs error
 df_res %>%
-  filter(!ID %in% exclID) %>%
   filter(maf > MAF) %>%
   ggplot(aes(maf, abs(z.stat - z), color=method)) +
     geom_scattermore(pointsize=3) + 
@@ -262,7 +300,6 @@ df_res %>%
 
 df_res %>%
   filter(maf > MAF) %>%
-  filter(!ID %in% exclID) %>%
   ggplot(aes(maf, abs(z.stat - z), color=method)) +
     geom_smooth() +
     theme_classic() +
@@ -272,7 +309,6 @@ df_res %>%
 # maf vs error
 breaks = c(0.01, 0.05, .1, .2, .3, .4, .5)
 df_res %>%
-  filter(!ID %in% exclID) %>%
   filter(maf > MAF) %>%
   mutate(cat = cut(maf, breaks)) %>%
   ggplot(aes(cat, abs(z.stat - z), color=method)) +
@@ -285,12 +321,10 @@ df_res %>%
 
 # maf vs delta
 a = df_res %>%
-  filter(!ID %in% exclID) %>%
   filter(method == "decorrelate") %>%
   mutate(delta = abs(z.stat - z))
 
 b =  df_res %>%
-  filter(!ID %in% exclID) %>%
   filter(method == "Schafer-Strimmer") %>%
   mutate(delta = abs(z.stat - z))
 
