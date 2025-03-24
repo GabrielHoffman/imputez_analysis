@@ -20,12 +20,8 @@ params:
 <!---
 
 
-
 cd /sc/arion/projects/roussp01a/gabriel/ref_panels/imputez_analysis
 
-# ml R/4.4.3-intel-mkl
-# R
-# .libPaths("/hpc/users/hoffmg01/.Rlib/R_441_bioc320")
 
 system("git pull")
 
@@ -127,7 +123,7 @@ df = df %>%
 window = 1000000
 flankWidth = 250000
 
-methods = c("decorrelate", "Schafer-Strimmer", "Ledoit-Wolf", "OAS", "Touloumis") 
+methods = c("decorrelate", "GIW-EB (k=50)", "Schafer-Strimmer", "OAS", "Touloumis") #, "Ledoit-Wolf"
 
 # for each method
 res = mclapply( methods, function(method){
@@ -147,7 +143,11 @@ res = mclapply( methods, function(method){
       idx = seq(1, nrow(df_chrom), by=10)
 
       # run imputation
-      res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method=method)
+      if( method == "GIW-EB (k=50)"){
+        res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="decorrelate", k=50)
+      }else{        
+        res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method=method)
+      }
       res$method = method
 
       # # merge with observed z-statistics
@@ -164,50 +164,6 @@ df_res = bind_rows(res)
 files = dir("./", pattern="*.RDS")
 df_time = lapply(files, readRDS)
 names(df_time) = gsub(".RDS", "", basename(files))
-```
-
-```{r test, eval=FALSE, echo=FALSE}
-library(parallel)
-
-flank = 2000000
-start = 1000000
-end = start + 1000000
-region = paste0(chrom, ":", start, '-', end)
-res = impute_region(df_chrom[-idx,], gds, region, flank)
-
-
-library(RhpcBLASctl)
-omp_set_num_threads(2)
-
-chrom = 10
-file = paste0("/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/1kg_chr", chrom, "_norm_eur.bcf")
-df_chrom = df[df$CHROM == chrom,]
-idx = seq(1, nrow(df_chrom), by=10)
-
-
-window = 1000000
-v = c(10000, 50000, 100000, 500000, 1000000, 2000000, 3000000)
-res = mclapply(v, function(flankWidth){
-  gds = GenomicDataStream(file, field="GT", init=TRUE, samples=sampleIDs, MAF=0.01)
-
-  s = seq(1, 100000)
-  res = run_imputez(df_chrom[-idx,][s,], gds, window, flankWidth)
-  res$flankWidth = flankWidth
-  res
-  }, mc.cores=12)
-names(res) = v
-
-df_res = res %>%
-        bind_rows %>%
-        inner_join( df_chrom[idx,], by="ID")
-
-df_res %>%
-  filter(maf > MAF) %>%
-  group_by(flankWidth) %>%
-  summarize(rMSE = rmse(z.stat - z))
-
-
-
 ```
 
 
@@ -441,7 +397,10 @@ df_res %>%
 ```
 
 
-
+### SessionInfo
+```{r sessioInfo, cache=FALSE}
+sessionInfo()
+```
 
 
 
