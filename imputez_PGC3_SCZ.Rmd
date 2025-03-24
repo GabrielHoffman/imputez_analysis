@@ -123,7 +123,7 @@ df = df %>%
 window = 1000000
 flankWidth = 250000
 
-methods = c("decorrelate", "GIW-EB (k=50)", "Schafer-Strimmer", "OAS", "Touloumis") #, "Ledoit-Wolf"
+methods = c("decorrelate", "GIW-EB (k=100)", "Schafer-Strimmer", "OAS", "Touloumis", "Pseudoinverse") #, "Ledoit-Wolf"
 
 # for each method
 res = mclapply( methods, function(method){
@@ -143,8 +143,10 @@ res = mclapply( methods, function(method){
       idx = seq(1, nrow(df_chrom), by=10)
 
       # run imputation
-      if( method == "GIW-EB (k=50)"){
-        res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="decorrelate", k=50)
+      if( method == "GIW-EB (k=100)"){
+        res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="decorrelate", k=100)
+      }else if( method == "Pseudoinverse"){        
+        res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="S", lambda=0, useginv=TRUE)
       }else{        
         res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method=method)
       }
