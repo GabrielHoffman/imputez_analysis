@@ -161,14 +161,6 @@ df_res = bind_rows(res)
 ```
 
 
-# df[df$ID == 'rs139745380',] %>% data.frame
-
-
-# region = "10:38523571-39523571"
-# res = impute_region(df_chrom[-idx,], gds, region, flankWidth, method="decor")
-# res %>% filter(ID == "rs139745380" )
-
-
 
 ```{r time, cache=FALSE}
 library(scattermore)
