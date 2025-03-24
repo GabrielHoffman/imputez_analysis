@@ -151,7 +151,7 @@ res = mclapply( methods, function(method){
         res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="S", lambda=0.01)
       }else if( method == "lambda = 1e-4"){        
         res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="S", lambda=1e-4)
-      }else{{        
+      }else{      
         res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method=method)
       }
       res$method = method
@@ -164,7 +164,7 @@ res = mclapply( methods, function(method){
   outfile = paste0("./", method, ".RDS")
   saveRDS(tm, outfile)
   bind_rows(res)
-}, mc.cores=6)
+}, mc.cores=9)
 df_res = bind_rows(res)
 
 files = dir("./", pattern="*.RDS")
