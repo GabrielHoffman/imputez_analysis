@@ -303,7 +303,7 @@ dfc %>%
     geom_hline(yintercept=0, color="grey70",linetype="dashed") +
     geom_smooth() +
     theme_classic() +
-    theme(as
+    theme(aspect.ratio=1)
 
 dfc %>%
   arrange(delta.x) %>%
