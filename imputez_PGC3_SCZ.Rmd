@@ -55,6 +55,7 @@ library(tidyverse)
 library(GenomicDataStream)
 library(ggplot2)
 library(scattermore)
+library(parallel)
 library(RhpcBLASctl)
 omp_set_num_threads(4)
 ```
@@ -117,7 +118,8 @@ exclID_MHC = df %>%
   select(ID)
 
 df = df %>%
-    filter(!ID %in% c(exclID, exclID_MHC))
+    filter(!ID %in% c(exclID, exclID_MHC)) %>%
+    filter( IMPINFO > 0.9) 
 ```
 
 
@@ -130,7 +132,7 @@ methods = c("decorrelate", "Schafer-Strimmer")#, "Ledoit-Wolf", "OAS", "Touloumi
 df_time = list()
 
 # for each method
-res = lapply( methods, function(method){
+res = mclapply( methods, function(method){
   tm = system.time({
     # for each chrom
     res = lapply( 22, function(chrom){
@@ -157,7 +159,7 @@ res = lapply( methods, function(method){
     })
   df_time[[method]] <<- tm  
   bind_rows(res)
-})
+}, mc.cores=6)
 df_res = bind_rows(res)
 ```
 
@@ -361,7 +363,7 @@ dfc %>%
 
 # rMSE - stratified by r2.pred
 df_res %>%
-  # filter(maf > 0.05) %>%
+  filter(maf > MAF) %>%
   ggplot(aes(r2.pred, (z.stat - z)^2, color=method)) +
     geom_point() +
     theme_classic() +
@@ -369,6 +371,21 @@ df_res %>%
     scale_color_manual(values = colMethods) +
     scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
     ylab("Squared error")
+
+df_res %>%
+  filter(maf > MAF) %>%
+  ggplot(aes(r2.pred, abs(z.stat - z), color=method)) +
+    geom_point() +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    scale_color_manual(values = colMethods) +
+    scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
+    ylab("Absolute error")
+
+df_res %>%
+  filter(maf > MAF) %>%
+  group_by(method) %>%
+  summarize(rho = cor(r2.pred, abs(z.stat - z), method="sp"))
 
 # imputez vs observed z-statistics
 lim = range(c(df_res$z, df_res$z.stat))
