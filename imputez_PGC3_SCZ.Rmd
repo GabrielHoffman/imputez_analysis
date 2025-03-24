@@ -246,7 +246,7 @@ df_res %>%
 
 
 # maf vs r2.pred
-fig = df_res %>%
+df_res %>%
   filter(maf > MAF) %>%
   filter(!ID %in% exclID) %>%
   ggplot(aes(maf, r2.pred, color=method)) +
@@ -257,7 +257,7 @@ fig = df_res %>%
     facet_wrap( ~ method)
 
 # maf vs error
-fig = df_res %>%
+df_res %>%
   filter(!ID %in% exclID) %>%
   filter(maf > MAF) %>%
   ggplot(aes(maf, abs(z.stat - z), color=method)) +
@@ -268,7 +268,7 @@ fig = df_res %>%
     # facet_wrap( ~ method) +
     scale_color_manual(values = colMethods) 
 
-fig = df_res %>%
+df_res %>%
   filter(maf > MAF) %>%
   filter(!ID %in% exclID) %>%
   ggplot(aes(maf, abs(z.stat - z), color=method)) +
@@ -279,7 +279,7 @@ fig = df_res %>%
 
 # maf vs error
 breaks = c(0.01, 0.05, .1, .2, .3, .4, .5)
-fig = df_res %>%
+df_res %>%
   filter(!ID %in% exclID) %>%
   filter(maf > MAF) %>%
   mutate(cat = cut(maf, breaks)) %>%
@@ -304,19 +304,14 @@ b =  df_res %>%
 
 dfc = inner_join(a,b, by=c("ID", "A1", "A2"))
 
-
-fig = dfc %>%  
+dfc %>%  
   filter(maf.x > MAF) %>%
   ggplot(aes(maf.x, delta.x - delta.y)) +
     geom_scattermore(pointsize=3) + 
     geom_hline(yintercept=0, color="grey70",linetype="dashed") +
     geom_smooth() +
     theme_classic() +
-    theme(aspect.ratio=1, legend.position="none") 
-
-ggsave(fig, file="~/www/test.png")
-
-
+    theme(as
 
 dfc %>%
   arrange(delta.x) %>%
@@ -329,8 +324,7 @@ dfc %>%
   tail(1) %>%
   data.frame
 
-
-fig = dfc %>%  
+dfc %>%  
   arrange(-maf.x) %>%
   filter(maf.x > 0.01) %>%
   ggplot(aes(delta.x,  delta.y, color=maf.x)) +
@@ -338,11 +332,6 @@ fig = dfc %>%
     scale_color_gradient(low="blue", high="red", limits=c(0,.5)) +
     theme_classic() +
     theme(aspect.ratio=1, legend.position="right") 
-
-ggsave(fig, file="~/www/test.png")
-
-
-
 
 # rMSE - stratified by r2.pred
 df_res %>%
