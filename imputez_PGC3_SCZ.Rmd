@@ -119,7 +119,7 @@ exclID_MHC = df %>%
 
 df = df %>%
     filter(!ID %in% c(exclID, exclID_MHC)) %>%
-    filter( IMPINFO > 0.9) 
+    filter( IMPINFO > 0.95) 
 ```
 
 
