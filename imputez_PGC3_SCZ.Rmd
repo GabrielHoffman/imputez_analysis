@@ -129,11 +129,9 @@ flankWidth = 250000
 
 methods = c("decorrelate", "Schafer-Strimmer")#, "Ledoit-Wolf", "OAS", "Touloumis") 
 
-df_time = list()
-
 # for each method
 res = mclapply( methods, function(method){
-  tm = system.time({
+  tm <- system.time({
     # for each chrom
     res = lapply( 22, function(chrom){
       message(paste(method, chrom))
@@ -152,15 +150,20 @@ res = mclapply( methods, function(method){
       res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method=method)
       res$method = method
 
-      # merge with observed z-statistics
+      # # merge with observed z-statistics
       res %>%
         inner_join( df_chrom[idx,], by="ID")
     }) 
     })
-  df_time[[method]] <<- tm  
+  outfile = paste0("./", method, ".RDS")
+  saveRDS(tm, outfile)
   bind_rows(res)
 }, mc.cores=6)
 df_res = bind_rows(res)
+
+files = dir("./", pattern="*.RDS")
+df_time = lapply(files, readRDS)
+names(df_time) = gsub(".RDS", "", basename(files))
 ```
 
 ```{r test, eval=FALSE, echo=FALSE}
