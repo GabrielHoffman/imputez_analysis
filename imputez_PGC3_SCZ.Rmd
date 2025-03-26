@@ -178,6 +178,8 @@ names(df_time) = gsub(".RDS", "", basename(files))
 colMethods = c("decorrelate" = "red",
               "GIW-EB (k=150)" = "#9f1214",
               "lambda = 0" = "#0000cd", 
+              "lambda = 0.01" = "lightblue", 
+              "lambda = 1e-4" = "lightblue3", 
               "Ledoit-Wolf" = "#FF7F00",    
               "OAS"= "#cccc29", 
               "Touloumis" = "#A65628", 
