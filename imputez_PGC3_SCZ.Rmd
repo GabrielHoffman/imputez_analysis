@@ -218,19 +218,24 @@ do.call(rbind, df_time) %>%
 MAF = 0.05
 
 # rMSE
-df_res %>%
+res = df_res %>%
   filter(maf > MAF) %>%
   group_by(method) %>%
-  summarize(rMSE = rmse(z.stat - z)) %>%
-  ggplot(aes(method, rMSE, fill=method)) +
+  summarize(rMSE = rmse(z.stat - z))
+
+ymax = sort(res$rMSE, decreasing=TRUE)[2] * 1.2
+ymin = sort(res$rMSE)[1] 
+
+fig = res %>%
+  ggplot(aes(method, pmin(ymax, rMSE), fill=method)) +
     geom_bar(stat="identity") +
     theme_classic() +
     theme(aspect.ratio=1, legend.position="none") +
     scale_fill_manual(values = colMethods) +
-    scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
-    ylab("Root mean squared error")+
+    scale_y_continuous(limits=c(0, ymax), expand=c(0,0)) +
+    ylab("Root mean squared error") +
+    geom_hline(yintercept = ymin, linetype="dashed") + 
     coord_flip()
-
 
 # rMSE - stratified
 df_res %>%
