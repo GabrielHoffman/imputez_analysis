@@ -271,12 +271,12 @@ df_res %>%
 
 df_res %>%
   filter(maf > MAF) %>%
+  filter(method != "GIW-EB (k=50)") %>%
   ggplot(aes(maf, abs(z.stat - z), color=method)) +
     geom_smooth(se=FALSE) +
     theme_classic() +
-    theme(aspect.ratio=1, legend.position="none") +
+    theme(aspect.ratio=1, legend.position="right") +
     scale_color_manual(values = colMethods) 
-
 
 # maf vs error
 breaks = c(0.01, 0.05, .1, .2, .3, .4, .5)
