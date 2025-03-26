@@ -226,7 +226,7 @@ res = df_res %>%
 ymax = sort(res$rMSE, decreasing=TRUE)[2] * 1.2
 ymin = sort(res$rMSE)[1] 
 
-fig = res %>%
+res %>%
   ggplot(aes(method, pmin(ymax, rMSE), fill=method)) +
     geom_bar(stat="identity") +
     theme_classic() +
@@ -365,6 +365,11 @@ df_res %>%
   summarize(rho = cor(r2.pred, abs(z.stat - z), method="sp"))
 
 # imputez vs observed z-statistics
+cmin = df_res %>%
+      filter(maf > 0.05) %>%
+      pull(r2.pred) %>%
+      min
+
 lim = range(c(df_res$z, df_res$z.stat))
 df_res %>%
   filter(maf > 0.05) %>%
@@ -377,7 +382,7 @@ df_res %>%
     geom_abline(slope=1, intercept=0) +
     geom_hline(yintercept=0, color="grey70", linetype="dashed") +
     geom_vline(xintercept=0, color="grey70", linetype="dashed") +
-    scale_color_gradient(low="grey30", high="red", limits=c(0,1)) +
+    scale_color_gradient(low="grey30", high="red", limits=c(cmin,1)) +
     coord_fixed(ratio = 1) +
     ylim(lim) + 
     xlim(lim) +
@@ -390,7 +395,7 @@ df_res %>%
     geom_point() +
     theme_classic() +
     theme(aspect.ratio=1) +
-    scale_color_gradient(low="grey30", high="red", limits=c(.5,1)) +
+    scale_color_gradient(low="grey30", high="red", limits=c(cmin,1)) +
     facet_wrap( ~ method, ncol=4)
 
 # histogram of lambda values
