@@ -123,8 +123,8 @@ df = df %>%
 window = 1000000
 flankWidth = 250000
 
-# methods = c("decorrelate", "GIW-EB (k=50)", "Schafer-Strimmer", "Pseudoinverse", "Ledoit-Wolf",  "OAS", "Touloumis", "lambda = 0.1", "lambda = 1e-4")
-methods = c("decorrelate", "GIW-EB (k=50)", "Schafer-Strimmer", "lambda = 0.1", "lambda = 1e-4")
+methods = c("decorrelate", "GIW-EB (k=100)", "Schafer-Strimmer", "Pseudoinverse", "Ledoit-Wolf", "OAS", "Touloumis", "lambda = 0.1", "lambda = 1e-4")
+# methods = c("decorrelate", "GIW-EB (k=100)", "Schafer-Strimmer", "lambda = 0.1", "lambda = 1e-4")
 
 # for each method
 res = mclapply( methods, function(method){
@@ -144,8 +144,8 @@ res = mclapply( methods, function(method){
       idx = seq(1, nrow(df_chrom), by=10)
 
       # run imputation
-      if( method == "GIW-EB (k=50)"){
-        res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="decorrelate", k=50)
+      if( method == "GIW-EB (k=100)"){
+        res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="decorrelate", k=100)
       }else if( method == "Pseudoinverse"){        
         res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="S", lambda=0, useginv=TRUE)
       }else if( method == "lambda = 0.1"){        
@@ -176,7 +176,7 @@ names(df_time) = gsub(".RDS", "", basename(files))
 
 ```{r time, cache=FALSE}
 colMethods = c("decorrelate" = "red",
-              "GIW-EB (k=50)" = "#9f1214",
+              "GIW-EB (k=100)" = "#9f1214",
               "lambda = 0" = "#0000cd", 
               "lambda = 0.1" = "#377eb8ff", 
               "lambda = 1e-4" = "#37b8b2ff", 
@@ -276,7 +276,7 @@ df_res %>%
 
 df_res %>%
   filter(maf > MAF) %>%
-  filter(method != "GIW-EB (k=50)") %>%
+  filter(method != "GIW-EB (k=100)") %>%
   ggplot(aes(maf, abs(z.stat - z), color=method)) +
     geom_smooth(se=FALSE) +
     theme_classic() +
