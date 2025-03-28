@@ -375,6 +375,26 @@ df_res %>%
     xlim(lim) +
     facet_wrap( ~ method, ncol=4)
 
+# just decorrelate
+df_res %>%
+  filter(maf > MAF) %>%
+  arrange(-r2.pred) %>%
+  filter(method == "decorrelate") %>%
+  ggplot(aes(z, z.stat, color=r2.pred)) +
+    geom_scattermore(pointsize=3) +
+    theme_classic() +
+    xlab("Observed z-statistic") +
+    ylab("Imputed z-statistic") +
+    geom_abline(slope=1, intercept=0) +
+    geom_hline(yintercept=0, color="grey70", linetype="dashed") +
+    geom_vline(xintercept=0, color="grey70", linetype="dashed") +
+    scale_color_gradient(low="grey30", high="red", limits=c(cmin,1)) +
+    coord_fixed(ratio = 1) +
+    ylim(lim) + 
+    xlim(lim) +
+    facet_wrap( ~ method, ncol=4)
+
+
 df_res %>%
   filter(maf > 0.05) %>%
   arrange(-r2.pred) %>%
