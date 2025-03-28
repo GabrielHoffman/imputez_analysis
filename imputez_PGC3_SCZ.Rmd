@@ -274,27 +274,32 @@ df_res %>%
     facet_wrap( ~ method, ncol=4) +
     scale_color_manual(values = colMethods) 
 
-df_res %>%
+fig = df_res %>%
   filter(maf > MAF) %>%
   filter(method != "GIW-EB (k=100)") %>%
-  ggplot(aes(maf, abs(z.stat - z), color=method)) +
+  ggplot(aes(maf, (z.stat - z)^2, color=method)) +
     geom_smooth(se=FALSE) +
     theme_classic() +
     theme(aspect.ratio=1, legend.position="right") +
     scale_color_manual(values = colMethods) 
 
+
 # maf vs error
-breaks = c(0.01, 0.05, .1, .2, .3, .4, .5)
-df_res %>%
+breaks = seq(0.01, .5, length.out=50)
+fig = df_res %>%
   filter(maf > MAF) %>%
   mutate(cat = cut(maf, breaks)) %>%
-  ggplot(aes(cat, abs(z.stat - z), color=method)) +
-    geom_boxplot() +
+  group_by(method, cat) %>%
+  summarize(rMSE = sqrt(mean((z.stat - z)^2))) %>%
+  mutate(cat = as.numeric(cat)) %>%
+  ggplot(aes(cat, rMSE, color=method)) +
+    geom_point() +
+    geom_smooth() +
     theme_classic() +
     theme(aspect.ratio=1, legend.position="none") +
-    # facet_wrap( ~ method) +
     scale_color_manual(values = colMethods) +
-    coord_cartesian(ylim=c(0, 1))
+    scale_y_continuous(limits=c(NA, 0.24)) 
+
 
 # maf vs delta
 a = df_res %>%
@@ -366,13 +371,13 @@ df_res %>%
 
 # imputez vs observed z-statistics
 cmin = df_res %>%
-      filter(maf > 0.05) %>%
+      filter(maf > MAF) %>%
       pull(r2.pred) %>%
       min
 
 lim = range(c(df_res$z, df_res$z.stat))
 df_res %>%
-  filter(maf > 0.05) %>%
+  filter(maf > MAF) %>%
   arrange(-r2.pred) %>%
   ggplot(aes(z, z.stat, color=r2.pred)) +
     geom_scattermore(pointsize=7) +
