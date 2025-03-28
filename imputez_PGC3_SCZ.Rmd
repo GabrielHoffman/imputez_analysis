@@ -274,7 +274,7 @@ df_res %>%
     facet_wrap( ~ method, ncol=4) +
     scale_color_manual(values = colMethods) 
 
-fig = df_res %>%
+df_res %>%
   filter(maf > MAF) %>%
   filter(method != "GIW-EB (k=100)") %>%
   ggplot(aes(maf, (z.stat - z)^2, color=method)) +
@@ -282,24 +282,6 @@ fig = df_res %>%
     theme_classic() +
     theme(aspect.ratio=1, legend.position="right") +
     scale_color_manual(values = colMethods) 
-
-
-# maf vs error
-breaks = seq(0.01, .5, length.out=50)
-fig = df_res %>%
-  filter(maf > MAF) %>%
-  mutate(cat = cut(maf, breaks)) %>%
-  group_by(method, cat) %>%
-  summarize(rMSE = sqrt(mean((z.stat - z)^2))) %>%
-  mutate(cat = as.numeric(cat)) %>%
-  ggplot(aes(cat, rMSE, color=method)) +
-    geom_point() +
-    geom_smooth() +
-    theme_classic() +
-    theme(aspect.ratio=1, legend.position="none") +
-    scale_color_manual(values = colMethods) +
-    scale_y_continuous(limits=c(NA, 0.24)) 
-
 
 # maf vs delta
 a = df_res %>%
