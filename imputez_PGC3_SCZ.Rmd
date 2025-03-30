@@ -70,7 +70,7 @@ df_pop = read.table(file, header=TRUE, sep="\t")
 df_pop = df_pop[df_pop$Relationship %in% c("father", "unrel","mother"),]
 df_pop = df_pop[df_pop$Individual.ID %in% df_fam$IID,]
 
-pops = c('GBR','IBS', 'TSI','CEU')#, "FIN")
+pops = c('GBR','IBS', 'TSI','CEU', "FIN")
 sampleIDs = df_pop$Individual.ID[df_pop$Population %in% pops]
 length(sampleIDs)
 
@@ -123,8 +123,8 @@ df = df %>%
 window = 1000000
 flankWidth = 250000
 
-methods = c("decorrelate", "GIW-EB (k=100)", "Schafer-Strimmer", "Pseudoinverse", "Ledoit-Wolf", "OAS", "Touloumis", "lambda = 0.1", "lambda = 1e-4")
-# methods = c("decorrelate", "GIW-EB (k=100)", "Schafer-Strimmer", "lambda = 0.1", "lambda = 1e-4")
+# methods = c("decorrelate", "GIW-EB (k=50)", "Schafer-Strimmer", "Pseudoinverse", "Ledoit-Wolf", "OAS", "Touloumis", "lambda = 0.1", "lambda = 1e-4")
+methods = c("decorrelate", "Schafer-Strimmer", "lambda = 0.1", "lambda = 1e-4")
 
 # for each method
 res = mclapply( methods, function(method){
@@ -135,7 +135,7 @@ res = mclapply( methods, function(method){
 
       # 1kg reference file
       file = paste0("/sc/arion/projects/roussp01a/gabriel/ref_panels/1kg/1kg_chr", chrom, "_norm_eur.bcf")
-      gds = GenomicDataStream(file, field="GT", init=TRUE, samples=sampleIDs, MAF=0.01)
+      gds = GenomicDataStream(file, field="GT", init=TRUE, samples=sampleIDs)
 
       # filter
       df_chrom = df[df$CHROM == chrom,]
@@ -144,8 +144,8 @@ res = mclapply( methods, function(method){
       idx = seq(1, nrow(df_chrom), by=10)
 
       # run imputation
-      if( method == "GIW-EB (k=100)"){
-        res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="decorrelate", k=100)
+      if( method == "GIW-EB (k=50)"){
+        res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="decorrelate", k=50)
       }else if( method == "Pseudoinverse"){        
         res = run_imputez(df_chrom[-idx,], gds, window, flankWidth, method="S", lambda=0, useginv=TRUE)
       }else if( method == "lambda = 0.1"){        
@@ -176,7 +176,7 @@ names(df_time) = gsub(".RDS", "", basename(files))
 
 ```{r time, cache=FALSE}
 colMethods = c("decorrelate" = "red",
-              "GIW-EB (k=100)" = "#9f1214",
+              "GIW-EB (k=50)" = "#9f1214",
               "lambda = 0" = "#0000cd", 
               "lambda = 0.1" = "#377eb8ff", 
               "lambda = 1e-4" = "#37b8b2ff", 
@@ -199,7 +199,7 @@ do.call(rbind, df_time) %>%
     theme_classic() +
     theme(aspect.ratio=1, legend.position="none") +
     scale_fill_manual(values = colMethods) +
-    scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
+    scale_y_continuous(limits=c(0, 8), expand=c(0,0)) +
     ylab("Wall time (hours)") +
     coord_flip()
 
@@ -276,7 +276,7 @@ df_res %>%
 
 df_res %>%
   filter(maf > MAF) %>%
-  filter(method != "GIW-EB (k=100)") %>%
+  filter(method != "GIW-EB (k=50)") %>%
   ggplot(aes(maf, (z.stat - z)^2, color=method)) +
     geom_smooth(se=FALSE) +
     theme_classic() +
@@ -381,7 +381,7 @@ df_res %>%
   arrange(-r2.pred) %>%
   filter(method == "decorrelate") %>%
   ggplot(aes(z, z.stat, color=r2.pred)) +
-    geom_scattermore(pointsize=3) +
+    geom_scattermore(pointsize=4, pixels=c(1024, 1024)) +
     theme_classic() +
     xlab("Observed z-statistic") +
     ylab("Imputed z-statistic") +
