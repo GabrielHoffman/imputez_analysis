@@ -123,8 +123,8 @@ df = df %>%
 window = 1000000
 flankWidth = 250000
 
-# methods = c("decorrelate", "GIW-EB (k=50)", "Schafer-Strimmer", "Pseudoinverse", "Ledoit-Wolf", "OAS", "Touloumis", "lambda = 0.1", "lambda = 1e-4")
-methods = c("decorrelate", "Schafer-Strimmer", "lambda = 0.1", "lambda = 1e-4")
+methods = c("decorrelate", "GIW-EB (k=50)", "Schafer-Strimmer", "Pseudoinverse", "Ledoit-Wolf", "OAS", "Touloumis", "lambda = 0.1", "lambda = 1e-4")
+# methods = c("decorrelate", "Schafer-Strimmer", "lambda = 0.1", "lambda = 1e-4")
 
 # for each method
 res = mclapply( methods, function(method){
