@@ -202,9 +202,9 @@ fig = do.call(rbind, df_time) %>%
     scale_fill_manual(values = colMethods) +
     ylab("Wall time (hours) [log10 scale]") +
     coord_flip() +
-    scale_y_log10(labels = ~.x/10, expand=c(0,0), limits=c(1, 120))
-fig
-# ggsave(fig, file="~/www/test.pdf")
+    scale_y_log10(labels = ~.x/10, expand=c(0,0), limits=c(1, 1126))
+# fig
+ggsave(fig, file="~/www/test.pdf")
 
 
 # Time
@@ -218,7 +218,7 @@ fig = do.call(rbind, df_time) %>%
     scale_fill_manual(values = colMethods) +
     ylab("CPU time (hours) [log10 scale]") +
     coord_flip() +
-    scale_y_log10(labels = ~.x/10, expand=c(0,0), limits=c(1, 200))
+    scale_y_log10(labels = ~.x/10, expand=c(0,0), limits=c(1, 1126))
 
 MAF = 0.05
 
