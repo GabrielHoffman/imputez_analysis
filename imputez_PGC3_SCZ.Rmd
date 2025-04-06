@@ -190,30 +190,35 @@ colMethods = c("decorrelate" = "red",
 
 rmse = function(x) sqrt(mean(x^2))
 
-# Time
-do.call(rbind, df_time) %>%
-  as.data.frame %>%
-  rownames_to_column('Method') %>%
-  ggplot(aes(Method, elapsed / 3600, fill=Method)) +
-    geom_bar(stat="identity") +
-    theme_classic() +
-    theme(aspect.ratio=1, legend.position="none") +
-    scale_fill_manual(values = colMethods) +
-    scale_y_continuous(limits=c(0, 8), expand=c(0,0)) +
-    ylab("Wall time (hours)") +
-    coord_flip()
 
-do.call(rbind, df_time) %>%
+# Time
+fig = do.call(rbind, df_time) %>%
   as.data.frame %>%
   rownames_to_column('Method') %>%
-  ggplot(aes(Method, user.self/ 3600, fill=Method)) +
+  ggplot(aes(Method, elapsed / 3600 * 10, fill=Method)) +
     geom_bar(stat="identity") +
     theme_classic() +
     theme(aspect.ratio=1, legend.position="none") +
     scale_fill_manual(values = colMethods) +
-    scale_y_continuous(limits=c(0, NA), expand=c(0,0)) +
-    ylab("CPU time (hours)") +
-    coord_flip()
+    ylab("Wall time (hours) [log10 scale]") +
+    coord_flip() +
+    scale_y_log10(labels = ~.x/10, expand=c(0,0), limits=c(1, 120))
+fig
+# ggsave(fig, file="~/www/test.pdf")
+
+
+# Time
+fig = do.call(rbind, df_time) %>%
+  as.data.frame %>%
+  rownames_to_column('Method') %>%
+  ggplot(aes(Method, user.self / 3600 * 10, fill=Method)) +
+    geom_bar(stat="identity") +
+    theme_classic() +
+    theme(aspect.ratio=1, legend.position="none") +
+    scale_fill_manual(values = colMethods) +
+    ylab("CPU time (hours) [log10 scale]") +
+    coord_flip() +
+    scale_y_log10(labels = ~.x/10, expand=c(0,0), limits=c(1, 200))
 
 MAF = 0.05
 
