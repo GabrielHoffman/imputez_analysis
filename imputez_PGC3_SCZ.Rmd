@@ -203,8 +203,8 @@ fig = do.call(rbind, df_time) %>%
     ylab("Wall time (hours) [log10 scale]") +
     coord_flip() +
     scale_y_log10(labels = ~.x/10, expand=c(0,0), limits=c(1, 1126))
-# fig
-ggsave(fig, file="~/www/test.pdf")
+fig
+# ggsave(fig, file="~/www/test.pdf")
 
 
 # Time
