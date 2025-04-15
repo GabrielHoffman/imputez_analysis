@@ -134,15 +134,14 @@ N = NCAS + NCON
 phi = NCAS / (NCAS+NCON)
 
 res_beta = with(res_c4, coef_from_z(z.stat, N, sd_x, phi=phi))
-res_c4$beta2 = res_beta$coef
-res_c4$se2 = res_beta$se
+res_c4$beta = res_beta$coef
+res_c4$se = res_beta$se
 
-
+# set baseline 
 baseline = "<BS>"
 i = which(res_c4$A2 == baseline)
 beta_base = res_c4$beta[i]
 res_c4$beta = beta_base - res_c4$beta
-
 
 ord = c('BS' = 1,
 'AL-BS-1' = 2,
