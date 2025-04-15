@@ -106,11 +106,6 @@ res_c4 = res_c4 %>%
 	mutate(z = z_base - z.stat) %>%
 	mutate(pvalue = 2*pnorm(abs(z), lower.tail=FALSE))
 
-# get beta and se
-# https://www.biostars.org/p/319584/
-# Beta = z / sqrt(2p(1− p)(n + z^2)) and
-# SE = 1 / sqrt(2p(1− p)(n + z^2))
-
 # Get variance of each allele
 gds = GenomicDataStream(file, field="GT", region="6", init=TRUE)
 gds = reinitializeStream(gds)
@@ -120,14 +115,12 @@ colnames(dat$X) <- dat$info$ID
 
 sd_x = apply(dat$X, 2, sd) 
 
-# var(dat$X[,1])
-# p = sum(dat$X[,1]) / (2*nrow(dat$X))
-# 2*p*(1-p)
 
 i = match(names(sd_x), res_c4$ID)
 res_c4$sd_x = NA
 res_c4$sd_x[i[!is.na(i)]] = sd_x[!is.na(i)]
 
+# Convert z-statistic to coef from logistic regression
 NCAS = 53386
 NCON = 77258
 N = NCAS + NCON
@@ -178,11 +171,11 @@ res_c4 %>%
 	mutate(A2 = gsub(">", "", A2)) %>%
 	mutate(A2 = factor(A2, rev(names(ord)))) %>%
 	ggplot(aes(beta, A2, color=A2)) +
+		geom_vline(xintercept=0, color="grey70", linetype="dashed")+
 		geom_errorbar(aes(xmin = beta - 1.96*se, xmax = beta + 1.96*se), width=0) + 
 		geom_point() +
 		theme_classic() +
 		theme(aspect.ratio=1, legend.position="none") +
-		geom_vline(xintercept=0, color="grey70", linetype="dashed") +
 		scale_color_manual(values = cols) +
 		xlab(bquote(beta)) +
 		ylab("Allele (compared to baseline A)")
