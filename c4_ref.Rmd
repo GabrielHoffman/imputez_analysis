@@ -93,7 +93,7 @@ res = run_imputez(df, gds, window, flankWidth)
 ```
 
 # Process results
-```{r results}
+```{r results, fig.height=5, fig.width=5}
 res_c4 = res %>%
 			filter(ID == "C4") %>%
 			mutate(ID = paste(ID, A1, A2, sep="__")) 
