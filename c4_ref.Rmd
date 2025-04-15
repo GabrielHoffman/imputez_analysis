@@ -1,6 +1,6 @@
 ---
 title: "Impute z-statistics from PGC3 SCZ"
-subtitle: 'European samples'
+subtitle: 'European samples.  Compare to [Sekar, et al.](https://www.nature.com/articles/nature16549)'
 author: "Developed by [Gabriel Hoffman](http://gabrielhoffman.github.io/)"
 date: "Run on `r Sys.time()`"
 output: 
