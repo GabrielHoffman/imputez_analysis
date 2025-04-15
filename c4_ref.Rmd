@@ -118,20 +118,24 @@ dat = getNextChunk( gds )
 dat$info$ID <- with(dat$info, paste(ID, A1, A2, sep="__"))
 colnames(dat$X) <- dat$info$ID
 
-var_x = apply(dat$X, 2, var) 
+sd_x = apply(dat$X, 2, sd) 
 
 # var(dat$X[,1])
 # p = sum(dat$X[,1]) / (2*nrow(dat$X))
 # 2*p*(1-p)
 
-i = match(names(var_x), res_c4$ID)
-res_c4$var_x = NA
-res_c4$var_x[i[!is.na(i)]] = var_x[!is.na(i)]
+i = match(names(sd_x), res_c4$ID)
+res_c4$sd_x = NA
+res_c4$sd_x[i[!is.na(i)]] = sd_x[!is.na(i)]
 
+NCAS = 53386
+NCON = 77258
+N = NCAS + NCON
+phi = NCAS / (NCAS+NCON)
 
-n = 58749.13
-res_c4$beta = with(res_c4, z.stat / sqrt(var_x * (n + z.stat^2)))
-res_c4$se = with(res_c4, 1 / sqrt(var_x * (n + z.stat^2)))
+res_beta = with(res_c4, coef_from_z(z.stat, N, sd_x, phi=phi))
+res_c4$beta2 = res_beta$coef
+res_c4$se2 = res_beta$se
 
 
 baseline = "<BS>"
