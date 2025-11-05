@@ -1,5 +1,6 @@
 
-
+cat("Loading packages...\n")
+suppressPackageStartupMessages({
 library(GenomicDataStream)
 library(imputez)
 library(tidyverse)
@@ -9,6 +10,7 @@ library(qtlPlots)
 library(remaCor)
 library(arrow)
 library(ggbio)
+})
 
 # Compute -log10 P from z-statistic
 # stable for large z-statistics
@@ -22,6 +24,9 @@ z_to_score = function(z){
 ensdb = EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86
 
 setwd("/hpc/users/hoffmg01/www/imputez_analysis/EnsembleTR/data/")
+
+
+cat("Reading data...\n")
 
 # Target Genes:
 genes = c("HTT", "C9orf72", "TCF4", "CNNM4", "TSPAN14", "HRCT1")
@@ -38,6 +43,8 @@ df_qtl = read_parquet(file)
 
 # for each target gene
 for( gene in genes){
+
+  cat(gene, "\n")
 
   # Read reference panel
   ######################
