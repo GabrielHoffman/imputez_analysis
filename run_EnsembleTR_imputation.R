@@ -132,7 +132,7 @@ for( gene in genes){
                   filter(!is.na(z.stat)) %>%
                   mutate( score = z_to_score(z.stat))
 
-  file = paste0("/hpc/users/hoffmg01/www/imputez_analysis/EnsembleTR/results/", gene, "RDS")
+  file = paste0("/hpc/users/hoffmg01/www/imputez_analysis/EnsembleTR/results/", gene, ".RDS")
   saveRDS(res_combined, file=file)
 
   # Convert to GRanges
@@ -165,5 +165,6 @@ for( gene in genes){
   pdf(file)
   fig_track
   dev.off()
+  brower()
 }
 
