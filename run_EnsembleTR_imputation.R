@@ -165,5 +165,6 @@ for( gene in genes){
   pdf(file)
   fig_track
   dev.off()
+  browser()
 }
 
