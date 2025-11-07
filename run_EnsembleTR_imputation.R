@@ -12,6 +12,8 @@ library(arrow)
 library(ggbio)
 })
 
+RhpcBLASctl::omp_set_num_threads(2)
+
 # Compute -log10 P from z-statistic
 # stable for large z-statistics
 z_to_score = function(z){
@@ -21,6 +23,27 @@ z_to_score = function(z){
   -(pnorm(abs(z), lower.tail=FALSE, log.p=TRUE) + log(2)) / log(10)
 }
 
+# Compute p-value from mixture of chisq stabily for large values
+pchisq.mixture = function(lrt.mle){
+
+  # evaluate 
+  # 0.5 * pchisq(lrt.mle, 1, lower.tail = FALSE) + 
+  #   0.5 * pchisq(lrt.mle, 2, lower.tail = FALSE)
+
+  # Compute log p-values of each component
+  a = pchisq(lrt.mle, 1, lower.tail = FALSE, log.p=TRUE) - log(2)
+  b = pchisq(lrt.mle, 2, lower.tail = FALSE, log.p=TRUE) - log(2)
+
+  # log p-value of combined result
+  lp = max(a, b) + log1p(exp(-abs(a - b)))
+
+  # z-statistic
+  z.stat = qnorm(lp, log.p=TRUE)
+
+  data.frame(p = exp(lp), logp = lp, z.stat = z.stat)
+}
+
+
 ensdb = EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86
 
 setwd("/hpc/users/hoffmg01/www/imputez_analysis/EnsembleTR/data/")
@@ -29,7 +52,7 @@ setwd("/hpc/users/hoffmg01/www/imputez_analysis/EnsembleTR/data/")
 cat("Reading data...\n")
 
 # Target Genes:
-genes = c("HTT", "C9orf72", "TCF4", "CNNM4", "TSPAN14", "HRCT1")
+genes = c("C9orf72", "TYK2", "TSPAN14")
 
 # get ENSEMBL ids
 df_gene = ensembldb::select(x = ensdb, keys = genes, keytype = 'SYMBOL', column = c('GENEID', "SEQNAME"))
@@ -52,12 +75,14 @@ for( gene in genes){
   # get chrom number
   chrom = df_gene %>% 
     filter(SYMBOL == gene) %>%
-    pull(SEQNAME)
+    pull(SEQNAME) %>%
+    head(1)
 
   # ENSEMBL id
   ensID = df_gene %>% 
     filter(SYMBOL == gene) %>%
-    pull(GENEID)
+    pull(GENEID)%>%
+    head(1)
 
   # Read reference panel
   file = paste0("norm/ensembletr_refpanel_v4_chr", chrom, ".norm.bcf")
@@ -106,9 +131,15 @@ for( gene in genes){
     C = C[df.focus$ALT, df.focus$ALT]
 
     # random effects meta-analysis
-    z.value = RE2C(df.focus$z.stat, df.focus$se, C) %>% 
-              mutate(z=qnorm(RE2Cp/2, lower.tail=FALSE)) %>% 
-              pull(z)
+    res.z = RE2C(df.focus$z.stat, df.focus$se, C) %>% 
+              mutate(z=qnorm(RE2Cp/2, lower.tail=FALSE)) 
+
+    z.value = res.z$z
+
+    if( ! is.finite(z.value) ){
+      lrt = res.z$stat1 + res.z$stat2
+      z.value = pchisq.mixture(lrt)$z.stat
+    }
 
     tibble(ID = id, 
       A1 = df.focus$REF[1], 
@@ -162,7 +193,7 @@ for( gene in genes){
   xlim(fig_track) = c(start(wh), end(wh))
   
   file = paste0("/hpc/users/hoffmg01/www/imputez_analysis/EnsembleTR/figures/", gene, ".pdf")
-  pdf(file)
+  pdf(file, height=4, width=4)
   fig_track
   dev.off()
 }
